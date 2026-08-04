@@ -1,0 +1,52 @@
+<?php
+$translate = $this->plugin('translate');
+$groupsJson = json_encode(
+    $groups,
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+);
+?>
+
+<section
+    id="resource-template-tabs-editor"
+    class="resource-template-tabs-editor"
+    data-groups="<?= $this->escapeHtmlAttr($groupsJson ?: '[]') ?>"
+    data-other-fields-label="<?= $this->escapeHtmlAttr($translate('No tab')) ?>"
+    data-field-tab-label="<?= $this->escapeHtmlAttr($translate('Field tab')) ?>"
+    data-tab-prefix="<?= $this->escapeHtmlAttr($translate('Tab:')) ?>"
+>
+    <div class="resource-template-tabs-heading">
+        <div>
+            <h2><?= $translate('Field tabs') ?></h2>
+            <p>
+                <?= $translate('Create tabs here. To assign a tab group, click edit button and select a Field tab in the sidebar.') ?>
+            </p>
+        </div>
+        <button type="button" class="button" data-add-tab>
+            <?= $translate('Add tab') ?>
+        </button>
+    </div>
+
+    <div class="resource-template-tab-list" data-tab-list></div>
+    <p class="resource-template-tabs-empty" data-empty-message>
+        <?= $translate('No tabs have been created yet.') ?>
+    </p>
+
+    <input
+        type="hidden"
+        name="resource_template_tabs"
+        value="<?= $this->escapeHtmlAttr($groupsJson ?: '[]') ?>"
+        data-tabs-payload
+    >
+
+    <template data-tab-template>
+        <div class="resource-template-tab-row" data-tab>
+            <span class="sortable-handle resource-template-tab-handle" title="<?= $this->escapeHtmlAttr($translate('Drag to reorder tab')) ?>"></span>
+            <label>
+                <span class="sr-only"><?= $translate('Tab label') ?></span>
+                <input type="text" maxlength="190" required data-tab-label>
+            </label>
+            <span class="resource-template-tab-count" data-tab-count></span>
+            <button type="button" class="o-icon-delete button" data-remove-tab aria-label="<?= $this->escapeHtmlAttr($translate('Remove tab')) ?>" title="<?= $this->escapeHtmlAttr($translate('Remove tab')) ?>"></button>
+        </div>
+    </template>
+</section>

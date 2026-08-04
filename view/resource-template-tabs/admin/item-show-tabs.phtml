@@ -1,0 +1,16 @@
+<?php
+$translate = $this->plugin('translate');
+$groupsJson = json_encode(
+    $groups,
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+);
+$propertyIdsJson = json_encode($displayedPropertyIds);
+?>
+
+<div
+    id="resource-template-tabs-item-show-config"
+    hidden
+    data-groups="<?= $this->escapeHtmlAttr($groupsJson ?: '[]') ?>"
+    data-property-ids="<?= $this->escapeHtmlAttr($propertyIdsJson ?: '[]') ?>"
+    data-other-fields-label="<?= $this->escapeHtmlAttr($translate('Other fields')) ?>"
+></div>

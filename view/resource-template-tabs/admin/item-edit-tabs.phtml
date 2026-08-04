@@ -1,0 +1,15 @@
+<?php
+$translate = $this->plugin('translate');
+$groupsJson = json_encode(
+    $groups,
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+);
+?>
+
+<div
+    id="resource-template-tabs-item-edit-config"
+    hidden
+    data-resource-template-id="<?= (int) $resourceTemplateId ?>"
+    data-groups="<?= $this->escapeHtmlAttr($groupsJson ?: '[]') ?>"
+    data-other-fields-label="<?= $this->escapeHtmlAttr($translate('Other fields')) ?>"
+></div>
