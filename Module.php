@@ -223,13 +223,12 @@ SQL);
             ['site'],
             false
         );
-        $lang = $view->lang();
+        $lang = (string) $view->lang();
         foreach ($item->values() as $propertyData) {
             $values = $propertyData['values'];
             if ($filterLocale) {
                 $values = array_filter($values, static function ($value) use ($lang): bool {
-                    $valueLang = $value->lang();
-                    return $valueLang === '' || strcasecmp($valueLang, $lang) === 0;
+                    return self::valueMatchesLocale($value->lang(), $lang);
                 });
             }
             if ($values) {
@@ -252,6 +251,17 @@ SQL);
             'groups' => $groups,
             'displayedPropertyIds' => $displayedPropertyIds,
         ]);
+    }
+
+    private static function valueMatchesLocale(
+        ?string $valueLang,
+        string $locale
+    ): bool {
+        // Match Omeka's common/resource-values renderer: untagged values are
+        // always displayed; tagged values must match the current locale.
+        return $valueLang === null
+            || $valueLang === ''
+            || strcasecmp($valueLang, $locale) === 0;
     }
 
     public function validateTabPayload(Event $event): void
