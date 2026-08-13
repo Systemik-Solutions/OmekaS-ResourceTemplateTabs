@@ -9,14 +9,13 @@
         }
 
         let savedGroups = [];
-        let propertyIds = [];
         try {
             savedGroups = JSON.parse(config.dataset.groups || '[]');
-            propertyIds = JSON.parse(config.dataset.propertyIds || '[]').map(String);
         } catch (error) {
+            console.warn('Resource Template Tabs: the item tab configuration could not be parsed.', error);
             return;
         }
-        if (!savedGroups.length || !propertyIds.length) {
+        if (!savedGroups.length) {
             return;
         }
 
@@ -33,16 +32,35 @@
         const propertyBlocks = Array.from(valuesList.children).filter(function (element) {
             return element.classList.contains('property');
         });
-        if (!propertyBlocks.length || propertyBlocks.length !== propertyIds.length) {
+        if (!propertyBlocks.length) {
             return;
         }
 
         const blocks = new Map();
-        propertyBlocks.forEach(function (block, index) {
-            const propertyId = propertyIds[index];
+        const mappingIsValid = propertyBlocks.every(function (block) {
+            const markers = Array.from(block.querySelectorAll(
+                ':scope > dd > [data-resource-template-tabs-property-id]'
+            ));
+            const propertyIds = new Set(markers.map(function (marker) {
+                return marker.dataset.resourceTemplateTabsPropertyId;
+            }));
+            if (propertyIds.size !== 1) {
+                return false;
+            }
+            const propertyId = propertyIds.values().next().value;
+            if (!propertyId || blocks.has(propertyId)) {
+                return false;
+            }
             block.dataset.propertyId = propertyId;
             blocks.set(propertyId, block);
+            return true;
         });
+        if (!mappingIsValid) {
+            console.warn(
+                'Resource Template Tabs: item fields could not be mapped safely. Tabs were not applied.'
+            );
+            return;
+        }
 
         const assignedPropertyIds = new Set();
         const groups = [];

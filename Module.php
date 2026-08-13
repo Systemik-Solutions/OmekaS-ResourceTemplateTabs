@@ -80,6 +80,11 @@ SQL);
             [$this, 'renderItemShowTabs']
         );
         $sharedEventManager->attach(
+            'Omeka\Controller\Admin\Item',
+            'view.show.value',
+            [$this, 'renderItemShowPropertyMarker']
+        );
+        $sharedEventManager->attach(
             'Omeka\Api\Adapter\ResourceTemplateAdapter',
             'api.hydrate.pre',
             [$this, 'validateTabPayload']
@@ -223,31 +228,6 @@ SQL);
             return;
         }
 
-        // Keep Omeka's native value rendering intact. The ordered IDs let the
-        // browser associate each rendered property block with its template tab.
-        $displayedPropertyIds = [];
-        $filterLocale = (bool) $view->fallbackSetting(
-            'filter_locale_values',
-            ['site'],
-            false
-        );
-        $lang = (string) $view->lang();
-        foreach ($item->values() as $propertyData) {
-            $values = $propertyData['values'];
-            if ($filterLocale) {
-                $values = array_filter($values, static function ($value) use ($lang): bool {
-                    return self::valueMatchesLocale($value->lang(), $lang);
-                });
-            }
-            if ($values) {
-                $displayedPropertyIds[] = $propertyData['property']->id();
-            }
-        }
-
-        if (!$displayedPropertyIds) {
-            return;
-        }
-
         $view->headLink()->appendStylesheet(
             $view->assetUrl('css/resource-template-tabs.css', 'ResourceTemplateTabs')
         );
@@ -257,19 +237,38 @@ SQL);
 
         echo $view->partial('resource-template-tabs/admin/item-show-tabs', [
             'groups' => $groups,
-            'displayedPropertyIds' => $displayedPropertyIds,
         ]);
     }
 
-    private static function valueMatchesLocale(
-        ?string $valueLang,
-        string $locale
-    ): bool {
-        // Match Omeka's common/resource-values renderer: untagged values are
-        // always displayed; tagged values must match the current locale.
-        return $valueLang === null
-            || $valueLang === ''
-            || strcasecmp($valueLang, $locale) === 0;
+    /**
+     * Stamp a stable property identity into Omeka's native rendered value.
+     *
+     * The marker stays inside its property block when another module filters
+     * or reorders rendered values, so the browser never has to infer identity
+     * from the block's position.
+     */
+    public function renderItemShowPropertyMarker(Event $event): void
+    {
+        $value = $event->getParam('value');
+        if (!$value) {
+            return;
+        }
+
+        $routeMatch = $this->getServiceLocator()->get('Omeka\Status')->getRouteMatch();
+        $itemId = $routeMatch ? (int) $routeMatch->getParam('id', 0) : 0;
+        $resource = $value->resource();
+        if (!$itemId
+            || $routeMatch->getParam('action') !== 'show'
+            || $resource->resourceName() !== 'items'
+            || $resource->id() !== $itemId
+        ) {
+            return;
+        }
+
+        printf(
+            '<span hidden data-resource-template-tabs-property-id="%d"></span>',
+            $value->property()->id()
+        );
     }
 
     public function validateTabPayload(Event $event): void
