@@ -53,6 +53,35 @@ class TabManager
 
     public function normalisePayload($payload): array
     {
+        $payload = $this->preparePayloadForRedisplay($payload);
+
+        $normalised = [];
+        $labels = [];
+        foreach ($payload as $group) {
+            $label = trim($group['label']);
+            if ($label === '' || mb_strlen($label) > 190) {
+                throw new BadRequestException('Every field tab must have a label of 190 characters or fewer.');
+            }
+            $labelKey = mb_strtolower($label);
+            if (isset($labels[$labelKey])) {
+                throw new BadRequestException('Field tab labels must be unique within a resource template.');
+            }
+            $labels[$labelKey] = true;
+
+            $normalised[] = [
+                'label' => $label,
+                'property_ids' => $group['property_ids'],
+            ];
+        }
+
+        return $normalised;
+    }
+
+    /**
+     * Parse a submitted payload without discarding labels that need correction.
+     */
+    public function preparePayloadForRedisplay($payload): array
+    {
         if (is_string($payload)) {
             try {
                 $payload = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
@@ -64,23 +93,18 @@ class TabManager
             throw new BadRequestException('The field tab configuration is invalid.');
         }
 
-        $normalised = [];
-        $labels = [];
+        $prepared = [];
         $assignedPropertyIds = [];
         $propertyCount = 0;
         foreach ($payload as $group) {
             if (!is_array($group)) {
                 throw new BadRequestException('The field tab configuration is invalid.');
             }
-            $label = trim((string) ($group['label'] ?? ''));
-            if ($label === '' || mb_strlen($label) > 190) {
-                throw new BadRequestException('Every field tab must have a label of 190 characters or fewer.');
+            $label = $group['label'] ?? '';
+            if (!is_scalar($label) && $label !== null) {
+                throw new BadRequestException('The field tab configuration is invalid.');
             }
-            $labelKey = mb_strtolower($label);
-            if (isset($labels[$labelKey])) {
-                throw new BadRequestException('Field tab labels must be unique within a resource template.');
-            }
-            $labels[$labelKey] = true;
+            $label = (string) $label;
 
             $propertyIds = $group['property_ids'] ?? [];
             if (!is_array($propertyIds)) {
@@ -99,13 +123,13 @@ class TabManager
                 }
             }
 
-            $normalised[] = [
+            $prepared[] = [
                 'label' => $label,
                 'property_ids' => $normalisedPropertyIds,
             ];
         }
 
-        return $normalised;
+        return $prepared;
     }
 
     public function saveGroups(int $resourceTemplateId, array $groups): void

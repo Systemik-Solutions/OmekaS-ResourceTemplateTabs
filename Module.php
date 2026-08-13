@@ -81,7 +81,7 @@ SQL);
         );
         $sharedEventManager->attach(
             'Omeka\Api\Adapter\ResourceTemplateAdapter',
-            'api.update.pre',
+            'api.hydrate.pre',
             [$this, 'validateTabPayload']
         );
         $sharedEventManager->attach(
@@ -105,12 +105,19 @@ SQL);
         /** @var TabManager $tabManager */
         $tabManager = $this->getServiceLocator()->get(TabManager::class);
         $groups = $tabManager->getGroups($resourceTemplateId);
+        $validationError = null;
         $submittedPayload = $view->params()->fromPost(self::PAYLOAD_KEY);
         if ($submittedPayload !== null) {
             try {
                 $groups = $tabManager->normalisePayload($submittedPayload);
             } catch (BadRequestException $e) {
-                // Keep the last valid stored layout when submitted JSON is invalid.
+                $validationError = $e->getMessage();
+                try {
+                    $groups = $tabManager->preparePayloadForRedisplay($submittedPayload);
+                } catch (BadRequestException $redisplayException) {
+                    // A malformed payload cannot be safely rendered. Keep the
+                    // stored layout, while retaining the original error.
+                }
             }
         }
 
@@ -123,6 +130,7 @@ SQL);
 
         echo $view->partial('resource-template-tabs/admin/editor', [
             'groups' => $groups,
+            'validationError' => $validationError,
         ]);
     }
 
@@ -274,10 +282,18 @@ SQL);
 
         /** @var TabManager $tabManager */
         $tabManager = $this->getServiceLocator()->get(TabManager::class);
-        $content[self::PAYLOAD_KEY] = json_encode(
-            $tabManager->normalisePayload($content[self::PAYLOAD_KEY]),
-            JSON_THROW_ON_ERROR
-        );
+        try {
+            $content[self::PAYLOAD_KEY] = json_encode(
+                $tabManager->normalisePayload($content[self::PAYLOAD_KEY]),
+                JSON_THROW_ON_ERROR
+            );
+        } catch (BadRequestException $e) {
+            $event->getParam('errorStore')->addError(
+                self::PAYLOAD_KEY,
+                $e->getMessage()
+            );
+            return;
+        }
         $request->setContent($content);
     }
 

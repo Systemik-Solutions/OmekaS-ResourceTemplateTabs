@@ -13,7 +13,15 @@ $groupsJson = json_encode(
     data-other-fields-label="<?= $this->escapeHtmlAttr($translate('No tab')) ?>"
     data-field-tab-label="<?= $this->escapeHtmlAttr($translate('Field tab')) ?>"
     data-tab-prefix="<?= $this->escapeHtmlAttr($translate('Tab:')) ?>"
+    data-required-label-error="<?= $this->escapeHtmlAttr($translate('Enter a tab label containing at least one non-space character.')) ?>"
+    data-unique-label-error="<?= $this->escapeHtmlAttr($translate('Field tab labels must be unique.')) ?>"
 >
+    <?php if (!empty($validationError)): ?>
+    <ul class="messages resource-template-tabs-errors" role="alert">
+        <li class="error"><?= $this->escapeHtml($translate($validationError)) ?></li>
+    </ul>
+    <?php endif; ?>
+
     <div class="resource-template-tabs-heading">
         <div>
             <h2><?= $translate('Field tabs') ?></h2>
@@ -43,7 +51,14 @@ $groupsJson = json_encode(
             <span class="sortable-handle resource-template-tab-handle" title="<?= $this->escapeHtmlAttr($translate('Drag to reorder tab')) ?>"></span>
             <label>
                 <span class="sr-only"><?= $translate('Tab label') ?></span>
-                <input type="text" maxlength="190" required data-tab-label>
+                <input
+                    type="text"
+                    maxlength="190"
+                    required
+                    pattern=".*\S.*"
+                    title="<?= $this->escapeHtmlAttr($translate('Enter a tab label containing at least one non-space character.')) ?>"
+                    data-tab-label
+                >
             </label>
             <span class="resource-template-tab-count" data-tab-count></span>
             <button type="button" class="o-icon-delete button" data-remove-tab aria-label="<?= $this->escapeHtmlAttr($translate('Remove tab')) ?>" title="<?= $this->escapeHtmlAttr($translate('Remove tab')) ?>"></button>

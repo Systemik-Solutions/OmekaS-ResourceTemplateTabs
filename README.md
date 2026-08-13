@@ -39,6 +39,9 @@ administrator to:
   sidebar; and
 - leave properties unassigned under **Other fields**.
 
+Tab labels must contain a non-space character and must be unique within the
+template.
+
 The normal Omeka property list remains the source of field ordering. Removing a
 tab does not remove any resource template properties: its fields return to
 **Other fields**. Removing a property from the resource template automatically

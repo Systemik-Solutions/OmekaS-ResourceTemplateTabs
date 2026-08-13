@@ -15,6 +15,8 @@
         const otherFieldsLabel = editor.dataset.otherFieldsLabel;
         const fieldTabLabel = editor.dataset.fieldTabLabel;
         const tabPrefix = editor.dataset.tabPrefix;
+        const requiredLabelError = editor.dataset.requiredLabelError;
+        const uniqueLabelError = editor.dataset.uniqueLabelError;
         const assignments = new Map();
         let nextTabKey = 1;
         let activePropertyId = null;
@@ -38,6 +40,34 @@
 
         const getTabs = function () {
             return Array.from(tabList.querySelectorAll('[data-tab]'));
+        };
+
+        const validateTabLabels = function () {
+            const labels = new Map();
+            const inputs = getTabs().map(function (tab) {
+                return tab.querySelector('[data-tab-label]');
+            });
+            inputs.forEach(function (input) {
+                input.setCustomValidity('');
+                const key = input.value.trim().toLocaleLowerCase();
+                if (!key) {
+                    input.setCustomValidity(requiredLabelError);
+                    return;
+                }
+                const matchingInputs = labels.get(key) || [];
+                matchingInputs.push(input);
+                labels.set(key, matchingInputs);
+            });
+            labels.forEach(function (matchingInputs) {
+                if (matchingInputs.length > 1) {
+                    matchingInputs.forEach(function (input) {
+                        input.setCustomValidity(uniqueLabelError);
+                    });
+                }
+            });
+            return inputs.every(function (input) {
+                return input.validity.valid;
+            });
         };
 
         const getPropertyRows = function () {
@@ -120,6 +150,7 @@
         };
 
         const refreshUi = function () {
+            validateTabLabels();
             refreshAssignmentSelect();
             refreshPropertyBadges();
             serialise();
@@ -132,7 +163,6 @@
             const labelInput = tab.querySelector('[data-tab-label]');
             labelInput.value = group?.label || '';
             labelInput.addEventListener('input', function () {
-                labelInput.setCustomValidity('');
                 refreshUi();
             });
             tab.querySelector('[data-remove-tab]').addEventListener('click', function () {
@@ -213,15 +243,13 @@
         });
 
         const form = editor.closest('form');
-        form?.addEventListener('submit', function () {
-            const labels = new Map();
-            getTabs().forEach(function (tab) {
-                const input = tab.querySelector('[data-tab-label]');
-                const key = input.value.trim().toLocaleLowerCase();
-                input.setCustomValidity(labels.has(key) ? 'Tab labels must be unique.' : '');
-                labels.set(key, true);
-            });
+        form?.addEventListener('submit', function (event) {
+            const labelsAreValid = validateTabLabels();
             serialise();
+            if (!labelsAreValid || !form.checkValidity()) {
+                event.preventDefault();
+                form.reportValidity();
+            }
         });
 
         refreshUi();
