@@ -20,7 +20,8 @@
         }
 
         const valuesList = Array.from(metadata.children).find(function (element) {
-            return element.matches('dl:not(.resource-class)');
+            return element.matches('dl:not(.resource-class)')
+                && element.querySelector(':scope > .property');
         });
         if (!valuesList) {
             return;
